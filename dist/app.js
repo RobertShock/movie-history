@@ -28,7 +28,7 @@ module.exports = {retrieveKeys};
 },{"./firebaseApi":4,"./tmdb":6}],2:[function(require,module,exports){
 "use strict";
 
-const domString = (movieArray, imgConfig) => {
+const domString = (movieArray, imgConfig, divName) => {
   let domString = "";
   for (let i = 0; i < movieArray.length; i++){
     if (i % 3 === 0) {
@@ -36,9 +36,9 @@ const domString = (movieArray, imgConfig) => {
     }
     domString += `<div class="col-sm-6 col-md-4">`;
     domString +=    `<div class="thumbnail">`;
-    domString +=      `<img src="${imgConfig.base_url}w342/${movieArray[i].poster_path}" alt="">`;
+    domString +=      `<img src="${imgConfig.base_url}/w342/${movieArray[i].poster_path}" alt="">`;
     domString +=      `<div class="caption">`;
-    domString +=        `<h3>${movieArray[i].original_title}</h3>`;
+    domString +=        `<h3>${movieArray[i].title}</h3>`;
     domString +=        `<p>${movieArray[i].overview}</p>`;
     domString +=        `<p><a href="#" class="btn btn-primary" role="button">Review</a> <a href="#" class="btn btn-default" role="button">Watchlist</a></p>`;
     domString +=        `</div>`;
@@ -49,15 +49,15 @@ const domString = (movieArray, imgConfig) => {
     }
   }
 
-  printToDom(domString);
+  printToDom(domString, divName);
 };
 
-const printToDom = (strang) => {
-  $("#movies").append(strang);
+const printToDom = (strang, divName) => {
+  $(`#${divName}`).append(strang);
 };
 
-const clearDom = () => {
-  $("#movies").empty();
+const clearDom = (divName) => {
+  $(`#${divName}`).empty();
 };
 
 module.exports = {domString, clearDom};
@@ -65,6 +65,7 @@ module.exports = {domString, clearDom};
 "use strict";
 
 const tmdb = require('./tmdb');
+const dom = require('./dom');
 const firebaseApi = require('./firebaseApi');
 
 const pressEnter = () => {
@@ -88,6 +89,13 @@ const myLinks = () => {
 			$("#search").addClass("hide");
 			$("#myMovies").removeClass("hide");
 			$("#authScreen").addClass("hide");
+			firebaseApi.getMovieList().then((results) =>{
+				console.log("results", results);
+				dom.clearDom('moviesMine');
+				dom.domString(results, tmdb.getImgConfig(), 'moviesMine');
+			}).catch((err) =>{
+				console.log("error in getMovieList", err);
+			});
 		}else if (e.target.id === "authenticate"){
 			$("#search").addClass("hide");
 			$("#myMovies").addClass("hide");
@@ -97,41 +105,68 @@ const myLinks = () => {
 };
 
 const googleAuth = () => {
-	$('#googleButton').click((e) => {
-		firebaseApi.authenticateGoogle().then(() => {
-
-		}).catch ((err) => {
+	$('#googleButton').click((e) =>{
+		firebaseApi.authenticateGoogle().then().catch((err) =>{
 			console.log("error in authenticateGoogle", err);
 		});
 	});
 };
 
 module.exports = {pressEnter, myLinks, googleAuth};
-},{"./firebaseApi":4,"./tmdb":6}],4:[function(require,module,exports){
+},{"./dom":2,"./firebaseApi":4,"./tmdb":6}],4:[function(require,module,exports){
 "use strict";
 
 let firebaseKey = "";
 let userUid = "";
 
-const setKey = (key) => {
-	firebaseKey = key;
+const setKey = (key) =>{
+  firebaseKey = key;
 };
 
 //Firebase: GOOGLE - Use input credentials to authenticate user.
-  let authenticateGoogle = () => {
-    return new Promise((resolve, reject) => {
-      var provider = new firebase.auth.GoogleAuthProvider();
-      firebase.auth().signInWithPopup(provider)
-        .then((authData) => {
-        	userUid = authData.user.uid;
-            resolve(authData.user);
-        }).catch((error) => {
-            reject(error);
-        });
-    });
-  };
+let authenticateGoogle = () => {
+  return new Promise((resolve, reject) => {
+    var provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider)
+      .then((authData) => {
+        userUid = authData.user.uid;
+          resolve(authData.user);
+      }).catch((error) => {
+          reject(error);
+      });
+  });
+};
 
-module.exports = {setKey, authenticateGoogle};
+const getMovieList = () => {
+  let movies = [];
+  console.log(`${firebaseKey.databaseURL}/movies.json?orderBy="uid"&equalTo="${userUid}"`);
+  return new Promise((resolve, reject) =>{
+    $.ajax(`${firebaseKey.databaseURL}/movies.json?orderBy="uid"&equalTo="${userUid}"`).then((fbMovies) =>{
+      if(fbMovies != null){
+        Object.keys(fbMovies).forEach((key) =>{
+          fbMovies[key].id = key;
+          movies.push(fbMovies[key]);
+        });
+      }
+
+      resolve(movies);
+    }).catch((err) =>{
+      reject(err);
+    });
+  });
+};
+
+
+
+
+
+
+
+
+
+
+
+module.exports = {setKey, authenticateGoogle, getMovieList};
 },{}],5:[function(require,module,exports){
 "use strict";
 
@@ -172,15 +207,12 @@ const tmdbConfiguration = () => {
 const getConfig = () => {
   tmdbConfiguration().then((results) => {
     imgConfig = results;
-    console.log(imgConfig);
   }).catch((error) => {
     console.log("Error in getConfig", error);
   });
 };
 
 const searchMovies = (query) => {
-      console.log("firebase apps?", firebase.apps);
-
   searchTMDB(query).then((data) => {
     showResults(data);
   }).catch((error) => {
@@ -194,9 +226,22 @@ const setKey = (apiKey) => {
 };
 
 const showResults = (movieArray) => {
-  dom.clearDom();
-  dom.domString(movieArray, imgConfig);
+  dom.clearDom('movies');
+  dom.domString(movieArray, imgConfig, 'movies');
 };
 
-module.exports = {setKey, searchMovies};
+const getImgConfig = () => {
+  return imgConfig;
+};
+
+module.exports = {setKey, searchMovies, getImgConfig};
+
+
+
+
+
+
+
+
+
 },{"./dom":2}]},{},[5]);

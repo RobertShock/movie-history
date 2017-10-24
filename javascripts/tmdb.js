@@ -27,15 +27,12 @@ const tmdbConfiguration = () => {
 const getConfig = () => {
   tmdbConfiguration().then((results) => {
     imgConfig = results;
-    console.log(imgConfig);
   }).catch((error) => {
     console.log("Error in getConfig", error);
   });
 };
 
 const searchMovies = (query) => {
-      console.log("firebase apps?", firebase.apps);
-
   searchTMDB(query).then((data) => {
     showResults(data);
   }).catch((error) => {
@@ -49,8 +46,20 @@ const setKey = (apiKey) => {
 };
 
 const showResults = (movieArray) => {
-  dom.clearDom();
-  dom.domString(movieArray, imgConfig);
+  dom.clearDom('movies');
+  dom.domString(movieArray, imgConfig, 'movies');
 };
 
-module.exports = {setKey, searchMovies};
+const getImgConfig = () => {
+  return imgConfig;
+};
+
+module.exports = {setKey, searchMovies, getImgConfig};
+
+
+
+
+
+
+
+
