@@ -26,7 +26,6 @@ const myLinks = () => {
 			$("#myMovies").removeClass("hide");
 			$("#authScreen").addClass("hide");
 			firebaseApi.getMovieList().then((results) =>{
-				console.log("results", results);
 				dom.clearDom('moviesMine');
 				dom.domString(results, tmdb.getImgConfig(), 'moviesMine');
 			}).catch((err) =>{
@@ -48,4 +47,62 @@ const googleAuth = () => {
 	});
 };
 
-module.exports = {pressEnter, myLinks, googleAuth};
+
+const wishListEvents = () => {
+	$('body').on('click', '.wishlist', (e) => {
+		console.log("wishlist event", e);
+		let mommy = e.target.closest('.movie');
+
+		let newMovie = {
+			"title":$(mommy).find('.title').html(),
+			"overview": $(mommy).find('.overview').html(),
+			"poster_path":$(mommy).find('.poster_path').attr('src').split('/').pop(),
+			"rating": 0,
+			"isWatched": false,
+			"uid": ""
+		};
+
+		firebaseApi.saveMovie(newMovie).then(() =>{
+			$(mommy).remove();
+		}).catch((err) =>{
+			console.log("error in saveMovie", err);
+		});
+
+	});
+};
+
+const reviewEvents = () => {
+	$('body').on('click', '.review', (e) => {
+		let mommy = e.target.closest('.movie');
+
+		let newMovie = {
+			"title":$(mommy).find('.title').html(),
+			"overview": $(mommy).find('.overview').html(),
+			"poster_path":$(mommy).find('.poster_path').attr('src').split('/').pop(),
+			"rating": 0,
+			"isWatched": true,
+			"uid": ""
+		};
+
+		firebaseApi.saveMovie(newMovie).then(() =>{
+			$(mommy).remove();
+		}).catch((err) =>{
+			console.log("error in saveMovie", err);
+		});
+
+	});
+};
+
+const init = () => {
+	myLinks();
+	googleAuth();
+	pressEnter();
+	wishListEvents();
+	reviewEvents();
+};
+
+
+
+
+
+module.exports = {pressEnter, myLinks, googleAuth, wishListEvents, reviewEvents};
